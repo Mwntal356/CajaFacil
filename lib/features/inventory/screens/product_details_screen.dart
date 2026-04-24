@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/product_image_widget.dart';
 import '../../../data/models/product.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../sales/providers/sales_history_provider.dart';
@@ -22,7 +23,7 @@ class ProductDetailsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Análisis Forense'),
+        title: const Text('Ficha Técnica'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -64,26 +65,7 @@ class ProductDetailsScreen extends ConsumerWidget {
         Container(
           width: 90, height: 90,
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
-          child: product.fotoPath != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(20), 
-                  child: product.fotoPath!.startsWith('http')
-                      ? Image.network(
-                          product.fotoPath!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Icon(LucideIcons.package, size: 32, color: AppColors.textSecondary),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.green.withOpacity(0.3)));
-                          },
-                        )
-                      : product.fotoPath!.startsWith('assets/')
-                          ? Image.asset(product.fotoPath!, fit: BoxFit.cover)
-                          : File(product.fotoPath!).existsSync()
-                              ? Image.file(File(product.fotoPath!), fit: BoxFit.cover)
-                              : const Icon(LucideIcons.package, size: 32, color: AppColors.textSecondary),
-                )
-              : const Icon(LucideIcons.package, size: 32, color: AppColors.textSecondary),
+          child: ProductImageWidget(product.fotoPath, size: 90),
         ),
         const SizedBox(width: 20),
         Expanded(

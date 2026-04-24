@@ -10,6 +10,7 @@ import '../../inventory/providers/product_provider.dart';
 import '../../auth/providers/shift_provider.dart';
 import '../../sales/providers/sales_history_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../../../core/widgets/product_image_widget.dart';
 import '../widgets/sales_chart.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -384,7 +385,7 @@ class DashboardScreen extends ConsumerWidget {
                     Container(
                       width: 40, height: 40, 
                       decoration: BoxDecoration(color: AppColors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(LucideIcons.package, size: 20, color: AppColors.blue)
+                      child: ProductImageWidget(p.fotoPath, size: 40)
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -540,7 +541,7 @@ class DashboardScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(

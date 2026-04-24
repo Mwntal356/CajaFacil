@@ -24,6 +24,12 @@ class InventoryScreen extends ConsumerWidget {
         actions: [
           if (isDueno)
             IconButton(
+              icon: const Icon(LucideIcons.plusCircle, color: AppColors.blue),
+              tooltip: 'Agregar Producto',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductFormScreen())),
+            ),
+          if (isDueno)
+            IconButton(
               icon: const Icon(LucideIcons.settings),
               tooltip: 'Configuración',
               onPressed: () {},
@@ -166,14 +172,6 @@ class InventoryScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: isDueno ? FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ProductFormScreen()),
-        ),
-        icon: const Icon(LucideIcons.plus),
-        label: const Text('Producto'),
-      ) : null,
     );
   }
 

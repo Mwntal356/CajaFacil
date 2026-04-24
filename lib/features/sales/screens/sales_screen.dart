@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../core/widgets/product_image_widget.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../inventory/providers/product_provider.dart';
 import '../../inventory/screens/product_form_screen.dart';
@@ -153,8 +155,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
           ),
           IconButton(
             icon: const Icon(LucideIcons.scan, color: AppColors.blue),
-            tooltip: 'Escanear Continuo',
-            onPressed: () => _showContinuousScanner(context),
+            tooltip: 'Escanear',
+            onPressed: () => _scanBarcode(context),
           ),
           if (cart.isNotEmpty)
             FadeIn(
@@ -216,27 +218,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
-                                        child: Container(
-                                          width: double.infinity,
-                                          color: AppColors.green.withOpacity(0.05),
-                                          child: p.fotoPath != null
-                                              ? (p.fotoPath!.startsWith('http')
-                                                  ? Image.network(
-                                                      p.fotoPath!,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (context, error, stackTrace) => const Icon(LucideIcons.package, size: 40, color: AppColors.green),
-                                                      loadingBuilder: (context, child, loadingProgress) {
-                                                        if (loadingProgress == null) return child;
-                                                        return Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.green.withOpacity(0.3)));
-                                                      },
-                                                    )
-                                                  : p.fotoPath!.startsWith('assets/')
-                                                      ? Image.asset(p.fotoPath!, fit: BoxFit.cover)
-                                                      : File(p.fotoPath!).existsSync()
-                                                          ? Image.file(File(p.fotoPath!), fit: BoxFit.cover)
-                                                          : const Icon(LucideIcons.package, size: 40, color: AppColors.green))
-                                              : const Icon(LucideIcons.package, size: 40, color: AppColors.green),
-                                        ),
+                                        child: ProductImageWidget(p.fotoPath),
                                       ),
                                       Padding(
                                         padding: const EdgeInsets.all(12),
@@ -608,10 +590,41 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
     );
   }
 
-  void _showContinuousScanner(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Escáner continuo próximamente'), duration: Duration(seconds: 1)),
+  Future<void> _scanBarcode(BuildContext context) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Column(
+          children: [
+            const SizedBox(height: 50),
+            const Text('Escaneando...', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            Expanded(
+              child: MobileScanner(
+                onDetect: (capture) {
+                  final List<Barcode> barcodes = capture.barcodes;
+                  if (barcodes.isNotEmpty) {
+                    Navigator.pop(context, barcodes.first.rawValue);
+                  }
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('CANCELAR'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+
+    if (result != null) {
+      _onSearchChanged(result, ref);
+    }
   }
 
   void _showAddExpenseDialog(BuildContext context, WidgetRef ref, Shift shift) {
