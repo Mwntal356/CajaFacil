@@ -85,11 +85,11 @@ class Product extends HiveObject {
     this.stockMinimo = 5.0,
     List<CostEntry>? costHistory,
     List<PriceEntry>? priceHistory,
-  }) : this.costHistory = costHistory ?? [
+  }) : this.costHistory = List.from(costHistory ?? [
     CostEntry(date: DateTime.now(), quantity: existencias, cost: precioCosto)
-  ], this.priceHistory = priceHistory ?? [
+  ]), this.priceHistory = List.from(priceHistory ?? [
     PriceEntry(date: DateTime.now(), price: precioVenta)
-  ];
+  ]);
 
   // Cálculo de utilidad porcentual (Solicitado exacto)
   double get utilidadPorcentaje {

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import '../../inventory/providers/product_provider.dart';
+
 
 class PromotionState {
   final String generatedFlyer;

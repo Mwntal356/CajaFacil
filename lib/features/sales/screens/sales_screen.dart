@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'continuous_scanner_view.dart';
 import '../../../core/widgets/product_image_widget.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../inventory/providers/product_provider.dart';
@@ -196,72 +197,78 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                     : LayoutBuilder(
                         builder: (context, constraints) {
                           int crossAxisCount = constraints.maxWidth > 900 ? 5 : (constraints.maxWidth > 600 ? 3 : 2);
-                          return GridView.builder(
-                            padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 150),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
-                              childAspectRatio: 0.75,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                            itemCount: products.length,
-                            itemBuilder: (context, index) {
-                              final p = products[index];
-                              final cartItemIndex = cart.indexWhere((item) => item.product.nombre == p.nombre);
-                              final quantity = cartItemIndex != -1 ? cart[cartItemIndex].quantity : 0;
+                          return InteractiveViewer(
+                            panEnabled: false, // Solo permitir zoom, no desplazamiento libre
+                            boundaryMargin: const EdgeInsets.all(20),
+                            minScale: 1.0,
+                            maxScale: 2.0,
+                            child: GridView.builder(
+                              padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 150),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              itemCount: products.length,
+                              itemBuilder: (context, index) {
+                                final p = products[index];
+                                final cartItemIndex = cart.indexWhere((item) => item.product.nombre == p.nombre);
+                                final quantity = cartItemIndex != -1 ? cart[cartItemIndex].quantity : 0;
 
-                              return FadeInUp(
-                                delay: Duration(milliseconds: index * 20),
-                                child: Card(
-                                  clipBehavior: Clip.antiAlias,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: ProductImageWidget(p.fotoPath),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                            Text('\$${p.precioVenta.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.bold)),
-                                            const SizedBox(height: 8),
-                                            Container(
-                                              height: 36,
-                                              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(20)),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                children: [
-                                                  IconButton(
-                                                    padding: EdgeInsets.zero,
-                                                    icon: const Icon(LucideIcons.minus, size: 14),
-                                                    onPressed: quantity > 0 ? () => cartNotifier.updateQuantity(p, quantity - 1) : null,
-                                                  ),
-                                                  InkWell(
-                                                    onTap: () => _showQuantityDialog(context, p, quantity),
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                      child: Text('$quantity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                                    ),
-                                                  ),
-                                                  IconButton(
-                                                    padding: EdgeInsets.zero,
-                                                    icon: const Icon(LucideIcons.plus, size: 14, color: AppColors.green),
-                                                    onPressed: p.existencias > quantity ? () => cartNotifier.addProduct(p) : null,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
+                                return FadeInUp(
+                                  delay: Duration(milliseconds: index * 20),
+                                  child: Card(
+                                    clipBehavior: Clip.antiAlias,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: ProductImageWidget(p.fotoPath),
                                         ),
-                                      ),
-                                    ],
+                                        Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                              Text('\$${p.precioVenta.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.bold)),
+                                              const SizedBox(height: 8),
+                                              Container(
+                                                height: 36,
+                                                decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(20)),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                  children: [
+                                                    IconButton(
+                                                      padding: EdgeInsets.zero,
+                                                      icon: const Icon(LucideIcons.minus, size: 14),
+                                                      onPressed: quantity > 0 ? () => cartNotifier.updateQuantity(p, quantity - 1) : null,
+                                                    ),
+                                                    InkWell(
+                                                      onTap: () => _showQuantityDialog(context, p, quantity),
+                                                      child: Padding(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                        child: Text('$quantity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                      ),
+                                                    ),
+                                                    IconButton(
+                                                      padding: EdgeInsets.zero,
+                                                      icon: const Icon(LucideIcons.plus, size: 14, color: AppColors.green),
+                                                      onPressed: p.existencias > quantity ? () => cartNotifier.addProduct(p) : null,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           );
                         },
                       ),
@@ -591,40 +598,10 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   }
 
   Future<void> _scanBarcode(BuildContext context) async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => Scaffold(
-        backgroundColor: Colors.black,
-        body: Column(
-          children: [
-            const SizedBox(height: 50),
-            const Text('Escaneando...', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            Expanded(
-              child: MobileScanner(
-                onDetect: (capture) {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  if (barcodes.isNotEmpty) {
-                    Navigator.pop(context, barcodes.first.rawValue);
-                  }
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('CANCELAR'),
-              ),
-            ),
-          ],
-        ),
-      ),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ContinuousScannerView()),
     );
-
-    if (result != null) {
-      _onSearchChanged(result, ref);
-    }
   }
 
   void _showAddExpenseDialog(BuildContext context, WidgetRef ref, Shift shift) {

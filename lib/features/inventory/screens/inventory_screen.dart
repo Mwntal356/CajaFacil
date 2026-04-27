@@ -7,16 +7,31 @@ import '../../admin/providers/admin_provider.dart'; // Importar adminProvider
 import '../providers/product_provider.dart';
 import 'product_form_screen.dart';
 import 'product_details_screen.dart';
+import 'report_screen.dart';
+import '../../../core/widgets/product_image_widget.dart';
+import '../../../core/utils/inventory_report_generator.dart';
 
-class InventoryScreen extends ConsumerWidget {
+class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InventoryScreen> createState() => _InventoryScreenState();
+}
+
+class _InventoryScreenState extends ConsumerState<InventoryScreen> {
+  String _searchQuery = '';
+  
+  @override
+  Widget build(BuildContext context) {
     final products = ref.watch(productProvider);
     final auth = ref.watch(authProvider);
     final isDueno = auth.role == UserRole.dueno;
     final adminStats = ref.watch(adminStatsProvider);
+    
+    final filteredProducts = products.where((p) => 
+      p.nombre.toLowerCase().contains(_searchQuery.toLowerCase()) || 
+      (p.barcode?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
+    ).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -24,15 +39,15 @@ class InventoryScreen extends ConsumerWidget {
         actions: [
           if (isDueno)
             IconButton(
-              icon: const Icon(LucideIcons.plusCircle, color: AppColors.blue),
-              tooltip: 'Agregar Producto',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductFormScreen())),
+              icon: const Icon(LucideIcons.fileText, color: AppColors.blue),
+              tooltip: 'Generar Reporte',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen(products: products))),
             ),
           if (isDueno)
             IconButton(
-              icon: const Icon(LucideIcons.settings),
-              tooltip: 'Configuración',
-              onPressed: () {},
+              icon: const Icon(LucideIcons.plusCircle, color: AppColors.blue),
+              tooltip: 'Agregar Producto',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductFormScreen())),
             ),
         ],
       ),
@@ -81,7 +96,7 @@ class InventoryScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
-              onChanged: (query) => ref.read(inventoryProductProvider.notifier).search(query),
+              onChanged: (query) => setState(() => _searchQuery = query),
               decoration: const InputDecoration(
                 hintText: 'Buscar producto...',
                 prefixIcon: Icon(LucideIcons.search),
@@ -91,84 +106,164 @@ class InventoryScreen extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          // Tabla de inventario
+          // Lista de Inventario
           Expanded(
-            child: products.isEmpty
-                ? const Center(child: Text('No hay productos registrados'))
+            child: filteredProducts.isEmpty
+                ? const Center(child: Text('No hay productos coincidentes'))
                 : SingleChildScrollView(
                     scrollDirection: Axis.vertical,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columnSpacing: 24,
-                        headingRowColor: MaterialStateProperty.all(AppColors.surface),
-                        columns: isDueno 
-                          ? const [
-                              DataColumn(label: Text('Producto', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Stock', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('P. Costo', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('P. Venta', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Utilidad', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Inversión', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Acciones', style: TextStyle(fontWeight: FontWeight.bold))),
-                            ]
-                          : const [
-                              DataColumn(label: Text('Producto', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Stock', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Precio Público', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.green))),
-                            ],
-                        rows: products.map((p) {
-                          final utilidadMoney = p.precioVenta - p.precioCosto;
-                          final inversion = p.existencias * p.precioCosto;
-
-                          return DataRow(
-                            cells: isDueno ? [
-                              DataCell(
-                                InkWell(
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsScreen(product: p))),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.blue)),
-                                      Text(p.categoria, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                                    ],
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        final p = filteredProducts[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            onTap: () => Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (_) => ProductDetailsScreen(product: p))
+                            ),
+                            leading: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: p.esStockBajo 
+                                    ? Border.all(color: Colors.red, width: 2)
+                                    : null,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: ProductImageWidget(p.fotoPath, size: 48),
+                              ),
+                            ),
+                            title: Text(
+                              p.nombre, 
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, 
+                                color: p.esStockBajo ? Colors.red : null
+                              )
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Stock: ${p.existencias.toStringAsFixed(0)} ${p.unidadMedida} | Venta: \$${p.precioVenta.toStringAsFixed(2)}'),
+                                if (isDueno) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Costo: \$${p.precioCosto.toStringAsFixed(2)} | Margen: ${p.utilidadPorcentaje.toStringAsFixed(1)}% | Inv: \$${p.valorTotalInventario.toStringAsFixed(2)}',
+                                    style: TextStyle(fontSize: 11, color: p.utilidadPorcentaje < 10 ? Colors.red : AppColors.textSecondary),
                                   ),
+                                ],
+                              ],
+                            ),
+                            trailing: isDueno ? PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'surtir') _showRestockDialog(context, ref, p);
+                                if (value == 'editar') Navigator.push(context, MaterialPageRoute(builder: (_) => ProductFormScreen(productToEdit: p)));
+                                if (value == 'ajuste') _showAdjustmentDialog(context, ref, p);
+                                if (value == 'eliminar') _confirmDelete(context, ref, p);
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'surtir', 
+                                  child: Row(children: [Icon(LucideIcons.packagePlus, size: 18), SizedBox(width: 8), Text('Resurtido')]),
                                 ),
-                              ),
-                              DataCell(Text('${p.existencias} ${p.unidadMedida}', style: TextStyle(color: p.esStockBajo ? Colors.orange : null, fontWeight: p.esStockBajo ? FontWeight.bold : null))),
-                              DataCell(Text('\$${p.precioCosto.toStringAsFixed(2)}')),
-                              DataCell(Text('\$${p.precioVenta.toStringAsFixed(2)}')),
-                              DataCell(
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('\$${utilidadMoney.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.bold, fontSize: 11)),
-                                    Text('${p.utilidadPorcentaje.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 9, color: AppColors.textSecondary)),
-                                  ],
+                                const PopupMenuItem(
+                                  value: 'editar', 
+                                  child: Row(children: [Icon(LucideIcons.edit, size: 18), SizedBox(width: 8), Text('Editar')]),
                                 ),
-                              ),
-                              DataCell(Text('\$${inversion.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(icon: const Icon(LucideIcons.packagePlus, size: 16, color: AppColors.green), onPressed: () => _showRestockDialog(context, ref, p)),
-                                    IconButton(icon: const Icon(LucideIcons.minusSquare, size: 16, color: Colors.orangeAccent), onPressed: () => _showAdjustmentDialog(context, ref, p)),
-                                    IconButton(icon: const Icon(LucideIcons.edit2, size: 16, color: AppColors.blue), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductFormScreen(productToEdit: p)))),
-                                  ],
+                                const PopupMenuItem(
+                                  value: 'ajuste', 
+                                  child: Row(children: [Icon(LucideIcons.scissors, size: 18), SizedBox(width: 8), Text('Merma / Consumo')]),
                                 ),
-                              ),
-                            ] : [
-                              DataCell(Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold))),
-                              DataCell(Text('${p.existencias} ${p.unidadMedida}')),
-                              DataCell(Text('\$${p.precioVenta.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.green))),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+                                const PopupMenuItem(
+                                  value: 'eliminar', 
+                                  child: Row(children: [Icon(LucideIcons.trash2, size: 18, color: Colors.red), SizedBox(width: 8), Text('Eliminar', style: TextStyle(color: Colors.red))]),
+                                ),
+                              ],
+                            ) : const Icon(LucideIcons.chevronRight),
+                          ),
+                        );
+                      },
                     ),
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAdjustmentDialog(BuildContext context, WidgetRef ref, dynamic p) {
+    final qtyController = TextEditingController();
+    String reason = 'Merma / Daño';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Ajuste de Salida'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Sacar del stock de "${p.nombre}" sin registrar venta.', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: qtyController,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Cantidad a sacar'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButton<String>(
+                value: reason,
+                isExpanded: true,
+                items: ['Merma / Daño', 'Caducado', 'Consumo Interno', 'Error de Inventario']
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                onChanged: (v) => setState(() => reason = v!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+            ElevatedButton(
+              onPressed: () {
+                final qty = double.tryParse(qtyController.text) ?? 0;
+                if (qty > 0 && qty <= p.existencias) {
+                  p.existencias -= qty;
+                  p.save();
+                  ref.read(productSourceProvider.notifier).refresh();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ajuste de $qty registrado como $reason')));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cantidad no válida o insuficiente')));
+                }
+              },
+              child: const Text('REGISTRAR SALIDA'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, dynamic p) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Producto'),
+        content: Text('¿Estás seguro de eliminar "${p.nombre}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          TextButton(
+            onPressed: () {
+              ref.read(productSourceProvider.notifier).deleteProduct(p);
+              Navigator.pop(context);
+            },
+            child: const Text('ELIMINAR', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -277,76 +372,4 @@ class InventoryScreen extends ConsumerWidget {
     );
   }
 
-  void _showAdjustmentDialog(BuildContext context, WidgetRef ref, dynamic p) {
-    final qtyController = TextEditingController();
-    String reason = 'Merma / Daño';
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Ajuste de Salida'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Sacar del stock de "${p.nombre}" sin registrar venta.', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 16),
-              TextField(
-                controller: qtyController,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Cantidad a sacar'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButton<String>(
-                value: reason,
-                isExpanded: true,
-                items: ['Merma / Daño', 'Caducado', 'Consumo Interno', 'Error de Inventario']
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                onChanged: (v) => setState(() => reason = v!),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
-            ElevatedButton(
-              onPressed: () {
-                final qty = double.tryParse(qtyController.text) ?? 0;
-                if (qty > 0 && qty <= p.existencias) {
-                  p.existencias -= qty;
-                  p.save();
-                  ref.read(productSourceProvider.notifier).refresh();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ajuste de $qty registrado como $reason')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cantidad no válida o insuficiente')));
-                }
-              },
-              child: const Text('REGISTRAR SALIDA'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, WidgetRef ref, dynamic p) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Producto'),
-        content: Text('¿Estás seguro de eliminar "${p.nombre}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
-          TextButton(
-            onPressed: () {
-              ref.read(productSourceProvider.notifier).deleteProduct(p);
-              Navigator.pop(context);
-            },
-            child: const Text('ELIMINAR', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
 }

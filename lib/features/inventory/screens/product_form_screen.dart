@@ -41,8 +41,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final p = widget.productToEdit;
     
     // Aseguramos que la categoría cargada exista en la lista, si no la agregamos
-    if (p != null && !categorias.contains(p.categoria)) {
-      categorias.add(p.categoria);
+    final List<String> categoriasMutable = List.from(categorias);
+    if (p != null && !categoriasMutable.contains(p.categoria)) {
+      categoriasMutable.add(p.categoria);
     }
     
     _nameController = TextEditingController(text: p?.nombre ?? '');
@@ -266,7 +267,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: DropdownButtonFormField<String>(
-                    value: _unidadMedida,
+                    value: unidades.contains(_unidadMedida) ? _unidadMedida : unidades.first,
                     items: unidades.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
                     onChanged: (v) => setState(() => _unidadMedida = v!),
                     decoration: const InputDecoration(labelText: 'Unidad'),

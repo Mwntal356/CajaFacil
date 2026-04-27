@@ -4,7 +4,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/dynamic_logo.dart';
+import '../../../core/widgets/logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -60,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const DynamicLogo(size: 120),
+            const CajaFacilLogo(size: 120),
             const SizedBox(height: 16),
             const Text(
               'CajaFácil',
